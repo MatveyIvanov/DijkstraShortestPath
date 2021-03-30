@@ -9,6 +9,7 @@ class DirectedGraph:
         self.adjacency_lists = LinkedList()
         self.nextVal = 1
         self.city_indexes = Map.Map()
+        self.city_names = Map.Map()
 
     # Find vertex with max value
     def max(self):
@@ -31,8 +32,10 @@ class DirectedGraph:
         # If graph is empty
         if self.adjacency_lists.head == None:
             self.city_indexes.insert(vertex1, self.nextVal)
+            self.city_names.insert(self.nextVal, vertex1)
             self.nextVal += 1
             self.city_indexes.insert(vertex2, self.nextVal)
+            self.city_names.insert(self.nextVal, vertex2)
             self.nextVal += 1
             self.adjacency_lists.head = LinkedListNode(vertex1, self.city_indexes[vertex1])
             self.adjacency_lists.head.next = LinkedListNode(vertex2, self.city_indexes[vertex2], distance)
@@ -46,6 +49,7 @@ class DirectedGraph:
                 if cur_list.next == None:
                     if self.city_indexes[vertex2] is None:
                         self.city_indexes.insert(vertex2, self.nextVal)
+                        self.city_names.insert(self.nextVal, vertex2)
                         self.nextVal += 1
                     cur_list.next = LinkedListNode(vertex2, self.city_indexes[vertex2], distance)
                     return
@@ -56,6 +60,7 @@ class DirectedGraph:
                     cur = cur.next
                 if self.city_indexes[vertex2] is None:
                     self.city_indexes.insert(vertex2, self.nextVal)
+                    self.city_names.insert(self.nextVal, vertex2)
                     self.nextVal += 1
                 cur.next = LinkedListNode(vertex2, self.city_indexes[vertex2], distance)
                 return
@@ -63,11 +68,13 @@ class DirectedGraph:
             else:
                 if self.city_indexes[vertex1] is None:
                     self.city_indexes.insert(vertex1, self.nextVal)
+                    self.city_names.insert(self.nextVal, vertex1)
                     self.nextVal += 1
                 cur_list.next_list = LinkedListNode(vertex1, self.city_indexes[vertex1])
                 cur_list = cur_list.next_list
                 if self.city_indexes[vertex2] is None:
                     self.city_indexes.insert(vertex2, self.nextVal)
+                    self.city_names.insert(self.nextVal, vertex2)
                     self.nextVal += 1
                 cur_list.next = LinkedListNode(vertex2, self.city_indexes[vertex2], distance)
                 
@@ -93,30 +100,18 @@ class DirectedGraph:
             raise Exception("Edge does not exist")
 
     # Recover the path from start vertex to end vertex
-    def recover_path(self, distances, start, end):
+    def recover_path(self, parents, start, end, distance):
         path = []
-        city_names = Map.Map()
-        it = Map.DFT_Iterator(self.city_indexes)
-        while it.has_next():
-            temp = next(it)
-            city_names.insert(temp.value, temp.key)
-        path.insert(0, city_names[end])
-        while end != start:
-            cur_list = self.adjacency_lists.head
-            while cur_list is not None:
-                cur = cur_list.next
-                while cur is not None and cur.node_num != end:
-                    cur = cur.next
-                if cur is not None and distances[end] - cur.edge_value == distances[cur_list.node_num]:
-                    path.insert(0, city_names[cur_list.node_num])
-                    end = cur_list.node_num
-                    break
-                cur_list = cur_list.next_list
+        path.insert(0, self.city_names[end])
+        while start != end:
+            path.insert(0, self.city_names[parents[end]])
+            end = parents[end]
+        path.append(str(distance))
         return path
 
     # Dijkstra shortest path algorithm
     def dijkstra(self, start_city, end_city):
-        cur_list = graph.adjacency_lists.head
+        cur_list = self.adjacency_lists.head
         start_found = False
         end_found = False
         start, end = None, None
@@ -130,8 +125,9 @@ class DirectedGraph:
                 end = cur_list.node_num
             cur_list = cur_list.next_list
         if start_found == True and end_found == True:
-            max_value = graph.max() # Max value in the graph
+            max_value = self.max() # Max value in the graph
             distances = [sys.maxsize] * (max_value + 1) # Distances from start to vertex[i]
+            parents = [0] * (max_value + 1)
             minHeap = MinHeap.Minheap() # Min heap for vertixes that are not processed yet
             minHeap.size = max_value + 1 # Min heap.nextVal
             # Add all vertices to the min heap
@@ -143,7 +139,7 @@ class DirectedGraph:
             minHeap.decrease_key(start, distances[start]) # Change vertex position in heap according to it's new distance
             while minHeap.min_el() != end: # While distance from start to end is not found
                 cur_min = minHeap.extract_min() # Get minimal vertex with minimal distance from set of processed vertices
-                cur_list = graph.adjacency_lists.head
+                cur_list = self.adjacency_lists.head
                 while cur_list != None and cur_list.node_num != cur_min.vertex:
                     cur_list = cur_list.next_list
                 # Loop through adjacent vertices of current minimal vertex and update their distances if it's needed
@@ -152,9 +148,10 @@ class DirectedGraph:
                     while cur != None:
                         if minHeap.isInMinHeap(cur.node_num) and distances[cur_min.vertex] != sys.maxsize and cur.edge_value + distances[cur_min.vertex] < distances[cur.node_num]:
                             distances[cur.node_num] = cur.edge_value + distances[cur_min.vertex] # Change distance
+                            parents[cur.node_num] = cur_min.vertex # Change parent of cur node
                             minHeap.decrease_key(cur.node_num, distances[cur.node_num]) # Change position in min heap
                         cur = cur.next
-            return self.recover_path(distances, start, end)
+            return self.recover_path(parents, start, end, distances[end])
         else:
             raise Exception("Path does not exist")
 
@@ -281,17 +278,3 @@ class DirectedGraph:
                 return False
             else:
                 return True
-
-
-graph = DirectedGraph()
-graph.insert('Санкт-Петербург', 'Москва', 10)
-graph.insert('Москва', 'Санкт-Петербург', 20)
-graph.insert('Москва', 'Хабаровск', 40)
-graph.insert('Хабаровск', 'Москва', 35)
-graph.insert('Хабаровск', 'Владивосток', 8)
-graph.insert('Владивосток', 'Хабаровск', 13)
-graph.insert('Санкт-Петербург', 'Хабаровск', 14)
-graph.insert('Санкт-Петербург', 'Владивосток', 30)
-
-
-print(graph.dijkstra('Санкт-Петербург', 'Владивосток'))
