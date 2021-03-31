@@ -1,5 +1,3 @@
-import sys
-
 class minHeapNode:
 
     def __init__(self, vertex, distance):

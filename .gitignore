@@ -12,6 +12,17 @@ __pycache__/
 # Environment files
 *.env
 
+# Microsoft word
+*.docx
+*.doc
+
+# Images
+*.png
+
+# Draw.io
+*.drawio
+
+
 # Distribution / packaging
 .Python
 build/

@@ -102,11 +102,11 @@ class DirectedGraph:
     # Recover the path from start vertex to end vertex
     def recover_path(self, parents, start, end, distance):
         path = []
-        path.insert(0, self.city_names[end])
-        while start != end:
-            path.insert(0, self.city_names[parents[end]])
-            end = parents[end]
-        path.append(str(distance))
+        path.insert(0, self.city_names[end]) # Last city
+        while start != end: # While current city is not start city
+            path.insert(0, self.city_names[parents[end]]) # Add parent city of current city to the path
+            end = parents[end] # Switch current city to it's parent
+        path.append(str(distance)) # Add distance to the path
         return path
 
     # Dijkstra shortest path algorithm
@@ -151,6 +151,8 @@ class DirectedGraph:
                             parents[cur.node_num] = cur_min.vertex # Change parent of cur node
                             minHeap.decrease_key(cur.node_num, distances[cur.node_num]) # Change position in min heap
                         cur = cur.next
+            if distances[end] == sys.maxsize:
+                raise Exception("Path does not exist")
             return self.recover_path(parents, start, end, distances[end])
         else:
             raise Exception("Path does not exist")
@@ -161,13 +163,12 @@ class DirectedGraph:
         def __init__(self, graph, start=None):
             self.stack = Stack.Stack()
             self.graph = graph
-            self.graph.sizel = self.graph.max() # Number of vertices in graph
-            print(self.graph.size)
-            self.visited = [False] * (self.graph.size + 1)
+            self.graph_size = self.graph.max() # Number of vertices in graph
+            self.visited = [False] * (self.graph_size + 1)
             if start is None:
-                self.stack.push(self.graph.adjacency_lists.head.value) # Push first vertex of adjacency list into the stack
+                self.stack.push(self.graph.adjacency_lists.head.node_num) # Push first vertex of adjacency list into the stack
             else:
-                self.stack.push(start) # Push start vertex into the stack
+                self.stack.push(self.graph.city_indexes[start]) # Push start vertex into the stack
             self.traversal_done = False
 
         def __next__(self):
@@ -177,24 +178,24 @@ class DirectedGraph:
                     return self.__next__()
                 self.visited[temp] = True # Mark vertex as visited
                 cur_list = self.graph.adjacency_lists.head
-                while cur_list != None and cur_list.value != temp:
+                while cur_list != None and cur_list.node_num != temp:
                     cur_list = cur_list.next_list
                 if cur_list != None:
                     # Add not visited adjacent vertices into the stack
                     cur = cur_list.next
                     while cur != None:
-                        if self.visited[cur.value] == False:
-                            self.stack.push(cur.value)
+                        if self.visited[cur.node_num] == False:
+                            self.stack.push(cur.node_num)
                         cur = cur.next
-                return temp # Return current vertex
+                return self.graph.city_names[temp] # Return current vertex
             else:
                 # Checking for other unhandled strongly connected components
                 self.traversal_done = True
                 cur_list = self.graph.adjacency_lists.head
                 # Check if there is not visited vertex in the graph
                 while cur_list != None:
-                    if self.visited[cur_list.value] == False:
-                        self.stack.push(cur_list.value)
+                    if self.visited[cur_list.node_num] == False:
+                        self.stack.push(cur_list.node_num)
                         self.traversal_done = False
                         break
                     cur_list = cur_list.next_list
@@ -204,10 +205,10 @@ class DirectedGraph:
                     cur = cur_list.next
                     # Add not visited adjacent vertices into the stack
                     while cur != None:
-                        if self.visited[cur.value] == False:
-                            self.stack.push(cur.value)
+                        if self.visited[cur.node_num] == False:
+                            self.stack.push(cur.node_num)
                         cur = cur.next
-                    return temp # Return current vertex
+                    return self.graph.city_names[temp] # Return current vertex
                 else: 
                     raise StopIteration # Traversal is done
 
@@ -224,12 +225,12 @@ class DirectedGraph:
         def __init__(self, graph, start=None):
             self.queue = Queue.Queue()
             self.graph = graph
-            self.graph.size = self.graph.max() # Number of vertices in graph
-            self.visited = [False] * (self.graph.size + 1)
+            self.graph_size = self.graph.max() # Number of vertices in graph
+            self.visited = [False] * (self.graph_size + 1)
             if start is None:
-                self.queue.enqueue(self.graph.adjacency_lists.head.value) # Insert first vertex of adjacency list into the queue
+                self.queue.enqueue(self.graph.adjacency_lists.head.node_num) # Insert first vertex of adjacency list into the queue
             else:
-                self.queue.enqueue(start) # Insert start vertex into the queue
+                self.queue.enqueue(self.graph.city_indexes[start]) # Insert start vertex into the queue
             self.traversal_done = False 
 
         def __next__(self):
@@ -239,24 +240,24 @@ class DirectedGraph:
                     return self.__next__()
                 self.visited[temp] = True # Mark vertex as visited
                 cur_list = self.graph.adjacency_lists.head
-                while cur_list != None and cur_list.value != temp:
+                while cur_list != None and cur_list.node_num != temp:
                     cur_list = cur_list.next_list
                 # Add not visited adjacent vertices of current vertex if they exist
                 if cur_list != None:
                     cur = cur_list.next
                     while cur != None:
-                        if self.visited[cur.value] == False:
-                            self.queue.enqueue(cur.value)
+                        if self.visited[cur.node_num] == False:
+                            self.queue.enqueue(cur.node_num)
                         cur = cur.next
-                return temp # Return current vertex
+                return self.graph.city_names[temp] # Return current vertex
             else:
                 # Checking for other unhandled strongly connected components
                 self.traversal_done = True
                 cur_list = self.graph.adjacency_lists.head
                 # Check if there is not visited vertex in the graph
                 while cur_list != None:
-                    if self.visited[cur_list.value] == False:
-                        self.queue.enqueue(cur_list.value)
+                    if self.visited[cur_list.node_num] == False:
+                        self.queue.enqueue(cur_list.node_num)
                         self.traversal_done = False
                         break
                     cur_list = cur_list.next_list
@@ -266,10 +267,10 @@ class DirectedGraph:
                     cur = cur_list.next
                     # Add not visited adjacent vertices into the queue
                     while cur != None:
-                        if self.visited[cur.value] == False:
-                            self.queue.enqueue(cur.value)
+                        if self.visited[cur.node_num] == False:
+                            self.queue.enqueue(cur.node_num)
                         cur = cur.next
-                    return temp
+                    return self.graph.city_names[temp]
                 else: # Traversal is done
                     raise StopIteration
 
